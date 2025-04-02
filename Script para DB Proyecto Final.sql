@@ -1,4 +1,4 @@
---------   ***  CREACION DE BASE DE DATOS    *** --------
+-- ------   ***  CREACION DE BASE DE DATOS    *** --------
 
 -- Crear la base de datos
 CREATE DATABASE gestion_productos;
@@ -67,7 +67,7 @@ CREATE TABLE Productos_Almacenes (
 
 
 
---------  **  INSERTS EN TABLAS
+-- ------  **  INSERTS EN TABLAS
 
 INSERT INTO Usuarios (cod_usuario, usuario, password, role)
 VALUES 
@@ -143,7 +143,7 @@ VALUES
 
 
 
--------- ** USUARIOS
+-- ------ ** USUARIOS
 
 -- CREAR USUARIO ADMIN
 CREATE USER 'administrador'@'%' IDENTIFIED BY 'Admin123!';
@@ -188,11 +188,11 @@ SELECT * FROM user;
 
 -- verificar usuarios
 USE gestion_productos;
-SELECT * FROM Usuarios;
+-- SELECT * FROM Usuarios;
 
 
 
--------- ** FUNCIONES
+-- ------ ** FUNCIONES
 
 -- FUNCION PARA OBTENER CODIGO DE USUARIO
 DROP FUNCTION  IF EXISTS ObtenerCodigoUsuarioActual;
@@ -200,6 +200,7 @@ DROP FUNCTION  IF EXISTS ObtenerCodigoUsuarioActual;
 DELIMITER //
 CREATE FUNCTION ObtenerCodigoUsuarioActual()
 RETURNS VARCHAR(100)
+DETERMINISTIC
 BEGIN
     DECLARE usuarioActual VARCHAR(50);
     DECLARE cod_usuario_actual INT;
@@ -215,7 +216,7 @@ BEGIN
 END//
 DELIMITER ;
 
-SELECT ObtenerCodigoUsuarioActual();
+-- SELECT ObtenerCodigoUsuarioActual();
 
 
 --  FUNCION VERIFICAR PRODUCTO
@@ -226,12 +227,13 @@ CREATE FUNCTION VerificarProducto(
     p_cod_producto VARCHAR(20)
 )
 RETURNS BOOLEAN
+DETERMINISTIC
 BEGIN
     RETURN EXISTS (SELECT 1 FROM Productos WHERE cod_producto = p_cod_producto);
 END//
 DELIMITER ;
 
---SELECT  VerificarProducto('P00001'); 
+-- SELECT  VerificarProducto('P00001'); 
 
 
 
@@ -244,6 +246,7 @@ CREATE FUNCTION CalcularSubtotal(
     p_cantidad INT
 )
 RETURNS DECIMAL(10, 2)
+DETERMINISTIC
 BEGIN
     DECLARE precio_u DECIMAL(10, 2);
     
@@ -262,13 +265,14 @@ BEGIN
 END//
 DELIMITER ;
 
---SELECT CalcularSubtotal('P00001', 10);
+-- SELECT CalcularSubtotal('P00001', 10);
 
 
 
 
 
---------  ** PROCEDIMIENTOS 
+
+-- ------  ** PROCEDIMIENTOS 
 
 -- SP-1 Agregar Producto 
 DROP PROCEDURE IF EXISTS AgregarProducto;
@@ -550,7 +554,7 @@ BEGIN
 END//
 DELIMITER ;
 
-SELECT CalcularSubtotal('P00001', 10);
+-- SELECT CalcularSubtotal('P00001', 10);
 
 
 
@@ -585,7 +589,7 @@ DELIMITER ;
 
 
 
---------  ** TRIGGERS
+-- ------  ** TRIGGERS
 
 -- T-1 ActualizarExistencias
 DROP TRIGGER IF EXISTS ActualizarExistencias;
@@ -620,7 +624,7 @@ GROUP BY
 
 
 
---------  ** REPORTES GENERALES
+-- ------  ** REPORTES GENERALES
 
 
 -- REPORTE PRODUCTOS DISPONIBLES
