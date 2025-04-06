@@ -143,6 +143,13 @@ VALUES
 
 
 
+-- --- ** INDICES
+
+CREATE INDEX idx_cod_producto ON Productos (cod_producto);
+
+
+
+
 -- ------ ** USUARIOS
 
 -- CREAR USUARIO ADMIN
@@ -302,7 +309,7 @@ BEGIN
         INSERT INTO Productos (cod_producto, descripcion, precio_unitario, estado)
         VALUES (nuevo_codigo, p_descripcion, p_precio_unitario, p_estado);
 
-        SELECT CONCAT('Producto agregado con código: ', nuevo_codigo) AS mensaje;
+        SELECT CONCAT('Producto agregado') AS mensaje, nuevo_codigo AS cod_producto;
     END IF;
 END//
 DELIMITER ;
@@ -311,7 +318,7 @@ DELIMITER ;
 
 
 
--- SP-2 ActualizarProducto
+-- SP-2 ActualizarProducto Modificado
 DROP PROCEDURE IF EXISTS ActualizarProducto;
 DELIMITER //
 CREATE PROCEDURE ActualizarProducto(
@@ -321,13 +328,26 @@ CREATE PROCEDURE ActualizarProducto(
     IN p_estado BOOLEAN
 )
 BEGIN
-    UPDATE Productos
-    SET descripcion = p_descripcion,
-        precio_unitario = p_precio_unitario,
-        estado = p_estado
-    WHERE cod_producto = p_cod_producto;
+    IF EXISTS (SELECT 1 FROM Productos WHERE cod_producto = p_cod_producto) THEN
+        UPDATE Productos
+        SET descripcion = p_descripcion,
+            precio_unitario = p_precio_unitario,
+            estado = p_estado
+        WHERE cod_producto = p_cod_producto;
+
+        -- Devuelve dos columnas: mensaje y cod_producto
+        SELECT 
+            'Producto actualizado correctamente' AS mensaje,
+            p_cod_producto AS cod_producto;
+    ELSE
+        SELECT 
+            'El producto no existe' AS mensaje,
+            NULL AS cod_producto;
+    END IF;
 END//
 DELIMITER ;
+
+
 
 -- CALL ActualizarProducto('P00021', 'Jugo de naranaja', 20.00, 0);
 
@@ -462,28 +482,24 @@ DELIMITER ;
 
 
 
-
+-- Se acutlizo 04042025
 -- SP-6 InsertarVenta
-DELIMITER //
 DROP PROCEDURE IF EXISTS InsertarVenta;
-
+DELIMITER //
 CREATE PROCEDURE InsertarVenta(
-    IN p_id_almacen INT
+    IN p_id_almacen INT,
+    IN p_cod_usuario INT
 )
 BEGIN
-    DECLARE cod_usuario_actual INT;
     DECLARE id_venta_insertada INT;
     DECLARE fecha_actual DATE;
 
     -- Obtener fecha actual
     SET fecha_actual = CURDATE();
 
-    -- Obtener el código de usuario actual
-    SET cod_usuario_actual = ObtenerCodigoUsuarioActual();
-
     -- Insertar la venta con fecha actual y total inicial en 0
     INSERT INTO Ventas (fecha, total, cod_usuario, id_almacen)
-    VALUES (fecha_actual, 0, cod_usuario_actual, p_id_almacen);
+    VALUES (fecha_actual, 0, p_cod_usuario, p_id_almacen);
 
     -- Obtener el ID de la venta recién insertada
     SET id_venta_insertada = LAST_INSERT_ID();
@@ -492,46 +508,56 @@ BEGIN
 END//
 DELIMITER ;
 
+
 -- CALL InsertarVenta(1);
 
 
 
 -- SP-7 InsertarDetalleVenta
+
 DROP PROCEDURE IF EXISTS InsertarDetalleVenta;
 DELIMITER //
 CREATE PROCEDURE InsertarDetalleVenta(
     IN p_id_venta INT,
+    IN p_cod_usuario INT,
     IN p_cod_producto VARCHAR(20),
     IN p_cantidad INT
 )
 BEGIN
     DECLARE id_venta_actual INT;
-    DECLARE cod_usuario_actual INT;
     DECLARE prodValido BOOLEAN;
     DECLARE existencia_actual INT;
     DECLARE sub_total DECIMAL(10, 2);
+    DECLARE fecha_actual DATE;
+    DECLARE id_almacen_actual INT;
 
-    -- Obtener el código de usuario actual
-    SET cod_usuario_actual = ObtenerCodigoUsuarioActual();
+    -- Obtener la fecha actual
+    SET fecha_actual = CURDATE();
 
-    -- Obtener la venta más reciente del usuario
+    -- Obtener el ID de la venta más reciente del usuario para el día actual
     SET id_venta_actual = (SELECT id_venta
                            FROM Ventas
-                           WHERE cod_usuario = cod_usuario_actual
-                           ORDER BY fecha DESC LIMIT 1);
+                           WHERE cod_usuario = p_cod_usuario
+                           AND DATE(fecha) = fecha_actual
+                           ORDER BY id_venta DESC LIMIT 1);
 
-    -- Verificar si la venta es la más reciente
+    -- Verificar si el ID de venta es exactamente el último
     IF p_id_venta = id_venta_actual THEN
         SET prodValido =  VerificarProducto(p_cod_producto); 
         IF prodValido = 1 THEN
-            -- Obtener la existencia actual del producto
-            SET existencia_actual = (SELECT existencia FROM Productos_Almacenes
-                                     WHERE id_almacen = (SELECT id_almacen FROM Ventas WHERE id_venta = p_id_venta)
-                                     AND cod_producto = p_cod_producto);
+            -- Obtener el ID del almacén de la venta actual
+            SET id_almacen_actual = (SELECT id_almacen FROM Ventas WHERE id_venta = p_id_venta);
 
-            IF existencia_actual >= p_cantidad THEN
-                SET sub_total = CalcularSubtotal(p_cod_producto, p_cantidad);
-                
+            -- Verificar si el producto está en el almacén
+            IF EXISTS (SELECT 1 FROM Productos_Almacenes WHERE id_almacen = id_almacen_actual AND cod_producto = p_cod_producto) THEN
+                -- Obtener la existencia actual del producto
+                SET existencia_actual = (SELECT existencia FROM Productos_Almacenes
+                                         WHERE id_almacen = id_almacen_actual
+                                         AND cod_producto = p_cod_producto);
+
+                IF existencia_actual >= p_cantidad THEN
+                    SET sub_total = CalcularSubtotal(p_cod_producto, p_cantidad);
+                    
                     -- Insertar el detalle de la venta en la tabla Ventas_Detalle
                     INSERT INTO Ventas_Detalle (id_venta, cod_producto, cantidad, sub_total)
                     VALUES (p_id_venta, p_cod_producto, p_cantidad, sub_total);
@@ -542,19 +568,23 @@ BEGIN
                     WHERE id_venta = p_id_venta;
 
                     SELECT 'Detalle de venta insertado correctamente' AS mensaje;
+                ELSE
+                    SELECT 'No hay suficientes existencias del producto' AS mensaje;
+                END IF;
             ELSE
-                SELECT 'No hay suficientes existencias del producto' AS mensaje;
+                SELECT CONCAT('El producto ', p_cod_producto, ' no está disponible en el almacén.') AS mensaje;
             END IF;
         ELSE
             SELECT CONCAT('El producto ', p_cod_producto, ' no existe.') AS mensaje;
         END IF;    
     ELSE
-        SELECT 'No se puede insertar detalles para una venta anterior' AS mensaje;
+        SELECT 'No se puede insertar detalles para una venta diferente a la última del día actual' AS mensaje;
     END IF;
 END//
 DELIMITER ;
 
--- SELECT CalcularSubtotal('P00001', 10);
+
+-- CALL InsertarDetalleVenta(1, 2, 'P00018', 2);
 
 
 
@@ -586,6 +616,23 @@ END//
 DELIMITER ;
 
 -- CALL VerificarDuplicidadProductos;
+
+
+
+
+-- SP-9 BuscarProductoPorCodigo
+DELIMITER //
+CREATE PROCEDURE BuscarProductoPorCodigo(
+    IN p_cod_producto VARCHAR(20)
+)
+BEGIN
+    SELECT * FROM Productos
+    WHERE cod_producto = p_cod_producto;
+END//
+DELIMITER ;
+
+-- CALL BuscarProductoPorCodigo('P00001');
+
 
 
 
