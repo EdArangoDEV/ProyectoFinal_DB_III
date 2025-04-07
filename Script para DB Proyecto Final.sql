@@ -69,10 +69,10 @@ CREATE TABLE Productos_Almacenes (
 
 -- ------  **  INSERTS EN TABLAS
 
-INSERT INTO Usuarios (cod_usuario, usuario, password, role)
-VALUES 
-(1, 'admin', SHA2('Admin123!', 256), 'administrador'),
-(2, 'operador', SHA2('Operador123!', 256),'operador');
+-- INSERT INTO Usuarios (cod_usuario, usuario, password, role)
+-- VALUES 
+-- (1, 'admin', SHA2('Admin123!', 256), 'administrador'),
+-- (2, 'operador', SHA2('Operador123!', 256),'operador');
 
 
 INSERT INTO Almacenes (id_almacen, nombre, direccion, telefono)
@@ -147,55 +147,6 @@ VALUES
 
 CREATE INDEX idx_cod_producto ON Productos (cod_producto);
 
-
-
-
--- ------ ** USUARIOS
-
--- CREAR USUARIO ADMIN
-CREATE USER 'administrador'@'%' IDENTIFIED BY 'Admin123!';
-GRANT ALL PRIVILEGES ON gestion_productos TO 'administrador'@'%' WITH GRANT OPTION;
-FLUSH PRIVILEGES;
-
--- SI USUARIO administrador YA ESTA CREADO
-SELECT User, Host FROM mysql.user WHERE User = 'administrador';
-ALTER USER 'administrador'@'%' IDENTIFIED BY 'Admin123!';
-FLUSH PRIVILEGES;
-
--- CREAR USUARIO OPERADOR
-CREATE USER 'operador'@'%' IDENTIFIED BY 'Operador123!';
-FLUSH PRIVILEGES;
-
--- SI USUARIO operador YA ESTA CREADO
-SELECT User, Host FROM mysql.user WHERE User = 'operador';
-ALTER USER 'operador'@'%' IDENTIFIED BY 'Operador123!';
-FLUSH PRIVILEGES;
-
--- Permitir que el usuario operador ejecute los procedimientos InsertarVenta y InsertarDetalleVenta
-GRANT EXECUTE ON PROCEDURE gestion_productos.InsertarVenta TO 'operador'@'%';
-GRANT EXECUTE ON PROCEDURE gestion_productos.InsertarDetalleVenta TO 'operador'@'%';
-GRANT SELECT ON gestion_productos.* TO 'operador'@'%';
-GRANT SELECT ON gestion_productos.Ventas TO 'operador'@'%';
-GRANT SELECT ON gestion_productos.Ventas_Detalle TO 'operador'@'%';
-FLUSH PRIVILEGES;
-
-
--- Permitir que el usuario operador ejecute los procedimientos InsertarVenta y InsertarDetalleVenta
-GRANT EXECUTE ON PROCEDURE gestion_productos.InsertarVenta TO 'operador'@'%';
-GRANT EXECUTE ON PROCEDURE gestion_productos.InsertarDetalleVenta TO 'operador'@'%';
-FLUSH PRIVILEGES;
-
--- Ver Grants para operador
-SHOW GRANTS FOR 'operador'@'%';
-
--- VER USUARIOS CREADOS
-USE mysql;
-SELECT * FROM user;
-
-
--- verificar usuarios
-USE gestion_productos;
--- SELECT * FROM Usuarios;
 
 
 
@@ -391,7 +342,7 @@ DELIMITER ;
 
 
 
--------  ***  GESTION DE INVENTARIO
+-- -----  ***  GESTION DE INVENTARIO
 
 -- SP-4 AgregarProductoAlmacen
 DROP PROCEDURE IF EXISTS AgregarProductoAlmacen;
@@ -722,3 +673,53 @@ SELECT A.nombre AS almacen, PA.existencia AS stock
 FROM Productos_Almacenes PA
 JOIN Almacenes A ON PA.id_almacen = A.id_almacen
 WHERE PA.cod_producto = 'P00001';
+
+
+
+
+-- ------ ** USUARIOS
+
+-- CREAR USUARIO ADMIN
+CREATE USER 'administrador'@'%' IDENTIFIED BY 'Admin123!';
+GRANT ALL PRIVILEGES ON gestion_productos TO 'administrador'@'%' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+
+-- SI USUARIO administrador YA ESTA CREADO
+-- SELECT User, Host FROM mysql.user WHERE User = 'administrador';
+ALTER USER 'administrador'@'%' IDENTIFIED BY 'Admin123!';
+FLUSH PRIVILEGES;
+
+-- CREAR USUARIO OPERADOR
+CREATE USER 'operador'@'%' IDENTIFIED BY 'Operador123!';
+FLUSH PRIVILEGES;
+
+-- SI USUARIO operador YA ESTA CREADO
+-- SELECT User, Host FROM mysql.user WHERE User = 'operador';
+ALTER USER 'operador'@'%' IDENTIFIED BY 'Operador123!';
+FLUSH PRIVILEGES;
+
+-- Permitir que el usuario operador ejecute los procedimientos InsertarVenta y InsertarDetalleVenta
+GRANT EXECUTE ON PROCEDURE gestion_productos.InsertarVenta TO 'operador'@'%';
+GRANT EXECUTE ON PROCEDURE gestion_productos.InsertarDetalleVenta TO 'operador'@'%';
+GRANT SELECT ON gestion_productos.* TO 'operador'@'%';
+GRANT SELECT ON gestion_productos.Ventas TO 'operador'@'%';
+GRANT SELECT ON gestion_productos.Ventas_Detalle TO 'operador'@'%';
+FLUSH PRIVILEGES;
+
+
+-- Permitir que el usuario operador ejecute los procedimientos InsertarVenta y InsertarDetalleVenta
+GRANT EXECUTE ON PROCEDURE gestion_productos.InsertarVenta TO 'operador'@'%';
+GRANT EXECUTE ON PROCEDURE gestion_productos.InsertarDetalleVenta TO 'operador'@'%';
+FLUSH PRIVILEGES;
+
+-- Ver Grants para operador
+-- SHOW GRANTS FOR 'operador'@'%';
+
+-- ------ VER USUARIOS CREADOS
+-- USE mysql;
+-- SELECT * FROM user;
+
+
+--  ---- verificar usuarios
+-- USE gestion_productos;
+-- SELECT * FROM Usuarios;
