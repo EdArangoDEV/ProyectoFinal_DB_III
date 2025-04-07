@@ -1,0 +1,16 @@
+doctype html
+html
+    head
+        title Inventario por Almacen
+    body
+        h1 Inventario por Almacen
+        table(border="1")
+            tr
+                th Almacén
+                th Producto
+                th Existencia
+            each item in inventario
+                tr
+                    td= item.almacen
+                    td= item.producto
+                    td= item.existencia
