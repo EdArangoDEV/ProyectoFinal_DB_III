@@ -188,7 +188,7 @@ router.get('/usuarios', authenticateToken, async (req, res) => {
 
         if (role === "administrador") {
             const [rows] = await db.query(`
-            SELECT usuario, role, cast(fecha_creacion as date) as fecha_creacion FROM Usuarios
+            SELECT usuario, role, DATE_FORMAT(fecha_creacion, "%d/%m/%y %H:%i:%s") as fecha_creacion FROM Usuarios
         `);
             res.render('reports/usuarios', { usuarios: rows });
         } else {
