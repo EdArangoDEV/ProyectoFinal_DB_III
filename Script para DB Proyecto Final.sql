@@ -33,16 +33,53 @@ CREATE TABLE Productos (
     estado BOOLEAN DEFAULT 1
 );
 
--- Crear la tabla Ventas
+
+-- CREATE TABLE Productos (
+--     cod_producto VARCHAR(20) NOT NULL PRIMARY KEY,
+--     estado BOOLEAN DEFAULT 1
+-- );
+
+
+-- CREATE TABLE Producto_Descripcion (
+--     cod_producto VARCHAR(20) NOT NULL PRIMARY KEY,
+--     descripcion VARCHAR(200) NOT NULL,
+--     FOREIGN KEY (cod_producto) REFERENCES Productos(cod_producto)
+-- );
+
+
+-- CREATE TABLE Producto_Precio (
+--     cod_producto VARCHAR(20) NOT NULL PRIMARY KEY,
+--     precio_unitario DECIMAL(10, 2) NOT NULL,
+--     FOREIGN KEY (cod_producto) REFERENCES Productos(cod_producto)
+-- );
+
+
+-- -- Crear la tabla Ventas
+-- CREATE TABLE Ventas (
+--     id_venta INT AUTO_INCREMENT PRIMARY KEY,
+--     fecha DATE NOT NULL,
+--     total DECIMAL(10, 2) NOT NULL,
+--     cod_usuario INT NOT NULL,
+--     id_almacen INT NOT NULL,
+--     FOREIGN KEY (cod_usuario) REFERENCES Usuarios(cod_usuario),
+--     FOREIGN KEY (id_almacen) REFERENCES Almacenes(id_almacen)
+-- );
+
+-- Crear la tabla Ventas con particion horizontal 
 CREATE TABLE Ventas (
-    id_venta INT AUTO_INCREMENT PRIMARY KEY,
+    id_venta INT AUTO_INCREMENT ,
     fecha DATE NOT NULL,
     total DECIMAL(10, 2) NOT NULL,
     cod_usuario INT NOT NULL,
     id_almacen INT NOT NULL,
-    FOREIGN KEY (cod_usuario) REFERENCES Usuarios(cod_usuario),
-    FOREIGN KEY (id_almacen) REFERENCES Almacenes(id_almacen)
+    primary key(id_venta, fecha)        
+)
+PARTITION BY RANGE (YEAR(fecha)) (
+    PARTITION v22 VALUES LESS THAN (2023),
+    PARTITION v23 VALUES LESS THAN (2024),
+    PARTITION v24 VALUES LESS THAN (2025)
 );
+
 
 -- Crear la tabla Detalles de Ventas
 CREATE TABLE Ventas_Detalle (
@@ -620,6 +657,23 @@ ON P.cod_producto = PA.cod_producto
 GROUP BY 
     P.cod_producto, P.descripcion, P.precio_unitario;
 
+
+
+-- Crear un trigger para verificar la existencia de cod_usuario y id_almacen antes de insertar en Ventas
+DROP TRIGGER IF EXISTS verificar_ventas
+DELIMITER //
+CREATE TRIGGER verificar_ventas
+BEFORE INSERT ON Ventas
+FOR EACH ROW
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM Usuarios WHERE cod_usuario = NEW.cod_usuario) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El cod_usuario no existe en la tabla Usuarios';
+    END IF;
+     IF NOT EXISTS (SELECT 1 FROM Almacenes WHERE id_almacen = NEW.id_almacen) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El id_almacen no existe en la tabla Almacenes';
+    END IF;
+END//
+DELIMITER ;
 
 
 -- ------  ** REPORTES GENERALES
